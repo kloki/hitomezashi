@@ -1,11 +1,16 @@
+use std::str::FromStr;
+
 use clap::Parser;
 use image::{
     ImageBuffer,
     ImageError,
     Rgb,
 };
-
-const WHITE: [u8; 3] = [255, 255, 255];
+use pattern::{
+    Pattern,
+    Section,
+};
+mod pattern;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -20,40 +25,47 @@ struct Args {
     /// multiply input seeds
     #[arg(short, long, default_value_t = 0)]
     multiply: usize,
+    /// pixel with of one column
+    #[arg(short, long, default_value_t = 5)]
+    column_width: u32,
+    /// Stitch color
+    #[arg(long, value_parser=clap::value_parser!(Color), default_value="0,0,0")]
+    color_stitch: Color,
+    /// Color of section A
+    #[arg(long, value_parser=clap::value_parser!(Color), default_value="255,255,255")]
+    color_a: Color,
+    /// Color of section B
+    #[arg(long, value_parser=clap::value_parser!(Color), default_value="0,255,255")]
+    color_b: Color,
 }
 
-struct Pattern {
-    x: Vec<bool>,
-    y: Vec<bool>,
-    margin: u32,
+#[derive(Debug, Clone, Copy)]
+struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
 }
-
-impl Pattern {
-    fn new(x: Vec<bool>, y: Vec<bool>) -> Self {
-        Pattern { x, y, margin: 5 }
-    }
-
-    fn image_size(&self) -> (u32, u32) {
-        (
-            (self.x.len() - 1) as u32 * self.margin + 1,
-            (self.y.len() - 1) as u32 * self.margin + 1,
-        )
-    }
-
-    fn on_stitch(&self, x: u32, y: u32) -> bool {
-        match (
-            x % self.margin,
-            y % self.margin,
-            (x / self.margin) as usize,
-            (y / self.margin) as usize,
-        ) {
-            (0, 0, _, _) => true,
-            (0, _, x_index, y_index) => (y_index % 2 == 0) == self.x[x_index],
-            (_, 0, x_index, y_index) => (x_index % 2 == 0) == self.y[y_index],
-            _ => false,
+impl FromStr for Color {
+    type Err = String;
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        let split: Vec<_> = input.split(",").collect();
+        if split.len() != 3 {
+            return Err("Not an rgb color: r,b,g".to_string());
         }
+        Ok(Color {
+            r: split[0].parse::<u8>().map_err(|e| format!("{e}"))?,
+            g: split[1].parse::<u8>().map_err(|e| format!("{e}"))?,
+            b: split[2].parse::<u8>().map_err(|e| format!("{e}"))?,
+        })
     }
 }
+
+impl From<Color> for [u8; 3] {
+    fn from(c: Color) -> Self {
+        [c.r, c.g, c.b]
+    }
+}
+
 fn seed(input: String) -> Vec<bool> {
     //magically work with even//odd and consonant/vowel
     let vowels = ['a', 'e', 'i', 'o', 'u', '0', '2', '4', '6', '8', '0'];
@@ -72,13 +84,16 @@ fn main() -> Result<(), ImageError> {
     let args = Args::parse();
     let x_seed = mulitply_vec(seed(args.x), args.multiply);
     let y_seed = mulitply_vec(seed(args.y), args.multiply);
-    let pattern = Pattern::new(x_seed, y_seed);
+    let pattern = Pattern::new(x_seed, y_seed, args.column_width);
+
     let (width, height) = pattern.image_size();
     let mut imgbuf = ImageBuffer::new(width, height);
 
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-        if !pattern.on_stitch(x, y) {
-            *pixel = Rgb(WHITE);
+        *pixel = match pattern.get_section(x, y) {
+            Section::Stitch => Rgb(args.color_stitch.into()),
+            Section::A => Rgb(args.color_a.into()),
+            Section::B => Rgb(args.color_b.into()),
         }
     }
 
