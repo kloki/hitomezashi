@@ -25,6 +25,9 @@ struct Args {
     /// multiply input seeds
     #[arg(short, long, default_value_t = 0)]
     multiply: usize,
+    /// pixel with of one column
+    #[arg(short, long, default_value_t = 5)]
+    column_width: u32,
     /// Stitch color
     #[arg(long, value_parser=clap::value_parser!(Color), default_value="0,0,0")]
     color_stitch: Color,
@@ -36,7 +39,7 @@ struct Args {
     color_b: Color,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 struct Color {
     r: u8,
     g: u8,
@@ -57,9 +60,9 @@ impl FromStr for Color {
     }
 }
 
-impl Color {
-    fn into_array(&self) -> [u8; 3] {
-        [self.r, self.g, self.b]
+impl From<Color> for [u8; 3] {
+    fn from(c: Color) -> Self {
+        [c.r, c.g, c.b]
     }
 }
 
@@ -81,15 +84,16 @@ fn main() -> Result<(), ImageError> {
     let args = Args::parse();
     let x_seed = mulitply_vec(seed(args.x), args.multiply);
     let y_seed = mulitply_vec(seed(args.y), args.multiply);
-    let pattern = Pattern::new(x_seed, y_seed);
+    let pattern = Pattern::new(x_seed, y_seed, args.column_width);
+
     let (width, height) = pattern.image_size();
     let mut imgbuf = ImageBuffer::new(width, height);
 
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
         *pixel = match pattern.get_section(x, y) {
-            Section::Stitch => Rgb(args.color_stitch.into_array()),
-            Section::A => Rgb(args.color_a.into_array()),
-            Section::B => Rgb(args.color_b.into_array()),
+            Section::Stitch => Rgb(args.color_stitch.into()),
+            Section::A => Rgb(args.color_a.into()),
+            Section::B => Rgb(args.color_b.into()),
         }
     }
 

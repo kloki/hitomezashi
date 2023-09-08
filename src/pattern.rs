@@ -18,12 +18,12 @@ impl Section {
 pub struct Pattern {
     x: Vec<bool>,
     y: Vec<bool>,
-    margin: u32,
+    column_width: u32,
     color_map: Vec<Vec<Section>>,
 }
 
 impl Pattern {
-    pub fn new(x: Vec<bool>, y: Vec<bool>) -> Self {
+    pub fn new(x: Vec<bool>, y: Vec<bool>, column_width: u32) -> Self {
         let mut color_map = vec![vec![Section::A; y.len()]; x.len()];
         let mut current_color = Section::A;
         for y_cor in 0..y.len() {
@@ -48,24 +48,24 @@ impl Pattern {
         Pattern {
             x,
             y,
-            margin: 5,
+            column_width,
             color_map,
         }
     }
 
     pub fn image_size(&self) -> (u32, u32) {
         (
-            (self.x.len() - 1) as u32 * self.margin + 1,
-            (self.y.len() - 1) as u32 * self.margin + 1,
+            (self.x.len() - 1) as u32 * self.column_width + 1,
+            (self.y.len() - 1) as u32 * self.column_width + 1,
         )
     }
 
     pub fn get_section(&self, x: u32, y: u32) -> Section {
         match (
-            x % self.margin,
-            y % self.margin,
-            (x / self.margin) as usize,
-            (y / self.margin) as usize,
+            x % self.column_width,
+            y % self.column_width,
+            (x / self.column_width) as usize,
+            (y / self.column_width) as usize,
         ) {
             (0, 0, _, _) => Section::Stitch,
             (0, _, x_index, y_index) if (y_index % 2 == 0) == self.x[x_index] => Section::Stitch,
