@@ -10,7 +10,9 @@ use pattern::{
     Pattern,
     Section,
 };
+use seed::Seed;
 mod pattern;
+mod seed;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -37,6 +39,9 @@ struct Args {
     /// Color of section B
     #[arg(long, value_parser=clap::value_parser!(Color), default_value="0,255,255")]
     color_b: Color,
+    /// Append mirror of seed to itself, will make the image symmetric
+    #[arg(long, default_value_t = false)]
+    mirror: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -66,25 +71,15 @@ impl From<Color> for [u8; 3] {
     }
 }
 
-fn seed(input: String) -> Vec<bool> {
-    //magically work with even//odd and consonant/vowel
-    let vowels = ['a', 'e', 'i', 'o', 'u', '0', '2', '4', '6', '8', '0'];
-    input.chars().map(|x| vowels.contains(&x)).collect()
-}
-
-fn mulitply_vec<T: Clone>(input: Vec<T>, i: usize) -> Vec<T> {
-    let mut output = input.clone();
-    for _ in 0..i {
-        output.append(&mut input.clone())
-    }
-    output
-}
-
 fn main() -> Result<(), ImageError> {
     let args = Args::parse();
-    let x_seed = mulitply_vec(seed(args.x), args.multiply);
-    let y_seed = mulitply_vec(seed(args.y), args.multiply);
-    let pattern = Pattern::new(x_seed, y_seed, args.column_width);
+    let mut x_seed = Seed::magic_seed(args.x).multiply(args.multiply);
+    let mut y_seed = Seed::magic_seed(args.y).multiply(args.multiply);
+    if args.mirror {
+        x_seed = x_seed.mirror();
+        y_seed = y_seed.mirror();
+    }
+    let pattern = Pattern::new(x_seed.seed, y_seed.seed, args.column_width);
 
     let (width, height) = pattern.image_size();
     let mut imgbuf = ImageBuffer::new(width, height);
