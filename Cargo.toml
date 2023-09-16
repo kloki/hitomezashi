@@ -3,7 +3,19 @@ name = "hitomezashi"
 version = "0.1.0"
 edition = "2021"
 
+default-run = "hitomezashi"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "hitomezashi"
+
+[[bin]]
+path = "src/your_name_pattern.rs"
+name = "your-name-pattern"
 
 [dependencies]
 clap = { version = "4.4.2", features = ["derive"] }
