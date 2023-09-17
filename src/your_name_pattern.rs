@@ -34,9 +34,9 @@ struct Args {
 
 fn main() -> Result<(), ImageError> {
     let args = Args::parse();
-    let x_seed = Seed::magic_seed(args.name).multiply(4);
+    let x_seed = Seed::magic_seed(args.name).mirror();
     let y_seed = x_seed.clone();
-    let pattern = Pattern::new(x_seed.seed, y_seed.seed, 5);
+    let pattern = Pattern::new(x_seed.seed, y_seed.seed, 10);
 
     let (width, height) = pattern.image_size();
     let mut imgbuf = ImageBuffer::new(width, height);
