@@ -1,6 +1,5 @@
 use clap::Parser;
 use hitomezashi::{
-    color::Color,
     pattern::{
         Pattern,
         Section,
@@ -12,6 +11,9 @@ use image::{
     ImageError,
     Rgb,
 };
+use rand::prelude::*;
+use rand_pcg::Pcg64;
+use rand_seeder::Seeder;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -20,32 +22,36 @@ struct Args {
     name: String,
     /// Name of png file
     #[arg(short, long, default_value = "./output.png")]
-    /// Stitch color
     output_file: String,
-    #[arg(long, value_parser=clap::value_parser!(Color), default_value="0,0,0")]
-    color_stitch: Color,
-    /// Color of section A
-    #[arg(long, value_parser=clap::value_parser!(Color), default_value="255,255,255")]
-    color_a: Color,
-    /// Color of section B
-    #[arg(long, value_parser=clap::value_parser!(Color), default_value="0,255,255")]
-    color_b: Color,
+}
+
+fn random_color(rng: &mut Pcg64) -> [u8; 3] {
+    [
+        rng.gen_range(0..255),
+        rng.gen_range(0..255),
+        rng.gen_range(0..255),
+    ]
 }
 
 fn main() -> Result<(), ImageError> {
     let args = Args::parse();
-    let x_seed = Seed::magic_seed(args.name).mirror();
+    let x_seed = Seed::magic_seed(args.name.clone()).multiply(2).mirror();
     let y_seed = x_seed.clone();
     let pattern = Pattern::new(x_seed.seed, y_seed.seed, 10);
 
     let (width, height) = pattern.image_size();
     let mut imgbuf = ImageBuffer::new(width, height);
+    let mut rng: Pcg64 = Seeder::from(args.name).make_rng();
+
+    let color_a = random_color(&mut rng);
+    let color_b = random_color(&mut rng);
+    let color_stitch = random_color(&mut rng);
 
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
         *pixel = match pattern.get_section(x, y) {
-            Section::Stitch => Rgb(args.color_stitch.into()),
-            Section::A => Rgb(args.color_a.into()),
-            Section::B => Rgb(args.color_b.into()),
+            Section::Stitch => Rgb(color_stitch),
+            Section::A => Rgb(color_a),
+            Section::B => Rgb(color_b),
         }
     }
 

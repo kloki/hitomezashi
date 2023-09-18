@@ -1,5 +1,5 @@
-const MAGIC: [char; 14] = [
-    'a', 'e', 'i', 'o', 'u', ' ', ',', '.', '0', '2', '4', '6', '8', '0',
+const MAGIC: [char; 19] = [
+    'A', 'E', 'I', 'O', 'U', 'a', 'e', 'i', 'o', 'u', ' ', ',', '.', '0', '2', '4', '6', '8', '0',
 ];
 #[derive(Clone)]
 pub struct Seed {
