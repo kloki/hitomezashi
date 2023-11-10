@@ -28,8 +28,19 @@ fn random_color(rng: &mut Pcg64) -> [u8; 3] {
 
 fn main() -> Result<(), ImageError> {
     let args = Args::parse();
-    let y_seed = Seed::magic_seed(args.eth.clone()).mirror();
-    let x_seed = Seed::magic_seed(args.eth.clone()).mirror();
+    let mut y_seed = Seed::magic_seed(args.eth.clone());
+    if y_seed.seed[12] {
+        y_seed = y_seed.mirror();
+    } else {
+        y_seed = y_seed.multiply(1);
+    }
+
+    let mut x_seed = Seed::magic_seed(args.eth.clone());
+    if x_seed.seed[8] {
+        x_seed = x_seed.mirror();
+    } else {
+        x_seed = x_seed.multiply(1);
+    }
     let pattern = Pattern::new(x_seed.seed, y_seed.seed, 10);
 
     let (width, height) = pattern.image_size();
